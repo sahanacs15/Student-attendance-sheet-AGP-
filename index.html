@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmartAttend — AGP Polytechnic</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#132033" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SmartAttend" />
+<meta name="mobile-web-app-capable" content="yes" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#132033;
+    --ink-soft:#243447;
+    --paper:#EEF1EE;
+    --panel:#FFFFFF;
+    --line:#D8DEDA;
+    --brass:#B8862E;
+    --brass-soft:#EADFC6;
+    --safe:#2F7D53;
+    --safe-bg:#E4F1E9;
+    --warn:#B8862E;
+    --warn-bg:#F5EBD6;
+    --crit:#AA3E36;
+    --crit-bg:#F6E4E2;
+    --text-dim:#5B6B7A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);}
+  h1,h2,h3,.serif{font-family:'Source Serif 4',serif;}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13.5px;}
+  th{color:var(--text-dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+  ::-webkit-scrollbar{height:8px;width:8px;}
+  ::-webkit-scrollbar-thumb{background:#c6cdc9;border-radius:4px;}
+
+  .app-shell{display:flex;min-height:100vh;}
+  .sidebar{width:216px;min-width:216px;background:var(--ink);color:#DCE3E0;display:flex;flex-direction:column;}
+  .sidebar-nav{flex:1;padding:10px 0;overflow-y:auto;}
+  .main-col{flex:1;min-width:0;}
+  .content-pad{padding:20px 22px 60px;}
+
+  @media (max-width: 780px){
+    .app-shell{flex-direction:column;}
+    .sidebar{width:100%;min-width:0;flex-direction:row;align-items:center;}
+    .sidebar-brand{padding:12px 14px !important;border-bottom:none !important;flex-shrink:0;}
+    .sidebar-nav{display:flex;flex-direction:row;overflow-x:auto;padding:6px 4px;flex:1;}
+    .sidebar-nav > div{white-space:nowrap;border-left:none !important;border-bottom:3px solid transparent;}
+    .sidebar-logout{padding:8px 10px !important;border-top:none !important;flex-shrink:0;}
+    .content-pad{padding:14px 12px 50px;}
+    table{font-size:12.5px;}
+    th,td{padding:8px 8px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useMemo,useEffect,useRef} = React;
+
+/* ---------------- Seed data ---------------- */
+const DEPT = "Computer Science and Engineering";
+const COLLEGE = "Arasan Ganesan Polytechnic College";
+const CLASSES = ["II CSE A","II CSE B","III CSE A","III CSE B"];
+const SUBJECTS = ["Cloud Computing","C Programming","Computer Networks","Software Engineering","Web Technology"];
+
+const FIRST = ["Arun","Bala","Siva","Ravi","Karthik","Manoj","Sanjay","Vignesh","Praveen","Dinesh","Suresh","Ajay","Naveen","Gokul","Harish","Kishore","Prakash","Aravind","Deepak","Mohan"];
+const LAST = ["Kumar","Raj","Prasath","Vel","Murugan","Selvam","Babu","Ganesh","Kannan","Ramesh"];
+
+function seedStudents(){
+  let list = []; let regBase = 23230;
+  CLASSES.forEach((cls, ci)=>{
+    const [yr] = cls.split(" ");
+    const year = yr === "II" ? 2 : 3;
+    const section = cls.slice(-1);
+    const count = ci < 2 ? 5 : 5; // 20 total
+    for(let i=0;i<count;i++){
+      const idx = ci*5+i;
+      const name = FIRST[idx % FIRST.length] + " " + LAST[(idx*3+ci) % LAST.length];
+      regBase++;
+      list.push({
+        id: "S"+(idx+1).toString().padStart(3,"0"),
+        roll: (i+1).toString().padStart(2,"0"),
+        reg: "23CSE" + regBase.toString().slice(-3),
+        name,
+        gender: idx % 3 === 0 ? "Female" : "Male",
+        dept: DEPT, year, semester: year===2?3:5, section,
+        className: cls,
+        academicYear: "2026-2027",
+        admissionYear: 2026 - year + 1,
+        phone: "98"+String(10000000 + idx*137).slice(0,8),
+        parentName: "Mr./Mrs. " + LAST[(idx+2)%LAST.length],
+        parentPhone: "9"+String(700000000 + idx*911).slice(0,9),
+        parentEmail: "parent"+(idx+1)+"@example.com",
+        address: "Sivakasi, Virudhunagar Dt.",
+        bloodGroup: ["O+","A+","B+","AB+"][idx%4],
+        status: "Active"
+      });
+    }
+  });
+  return list;
+}
+
+function dateStr(d){ return d.toISOString().slice(0,10); }
+function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+
+function seedAttendance(students){
+  // last 20 working weekdays ending today (12 Sep 2026), 2 periods/subjects sampled per day
+  let records = [];
+  let day = new Date("2026-09-12T00:00:00");
+  let workDays = [];
+  let cursor = new Date(day);
+  while(workDays.length < 18){
+    if(cursor.getDay() !== 0 && cursor.getDay() !== 6){ workDays.unshift(new Date(cursor)); }
+    cursor.setDate(cursor.getDate()-1);
+  }
+  let rid = 1;
+  workDays.forEach((d, di)=>{
+    const ds = dateStr(d);
+    students.forEach(s=>{
+      // pick 2 subject-periods per day for that student's class
+      [1,2].forEach(period=>{
+        const subj = SUBJECTS[(di+period)%SUBJECTS.length];
+        let roll = Math.random();
+        // deliberately give a couple of students shortage patterns
+        let bias = 0;
+        if(s.id === "S002") bias = 0.35; // Bala Kumar style chronic absentee
+        if(s.id === "S007") bias = 0.22;
+        let status = "P";
+        if(roll < 0.06 + bias) status = "A";
+        else if(roll < 0.11 + bias) status = "OD";
+        records.push({
+          id: "A"+(rid++), studentId: s.id, date: ds, subject: subj, period,
+          className: s.className, status, remarks: ""
+        });
+      });
+    });
+  });
+  return records;
+}
+
+function seedODRecords(students){
+  return [
+    {id:"OD1", studentId: students[4]?.id, date:"2026-09-08", event:"District Level Coding Contest", reason:"Representing college", venue:"TCE Madurai", from:"09:00", to:"16:00", status:"Approved", remarks:""},
+    {id:"OD2", studentId: students[10]?.id, date:"2026-09-10", event:"NCC Camp", reason:"Annual camp", venue:"College Ground", from:"08:00", to:"17:00", status:"Pending", remarks:""},
+  ];
+}
+
+/* ---------------- Attendance math ---------------- */
+function calcStats(records, studentId, opts){
+  const mine = records.filter(r=>r.studentId===studentId);
+  const total = mine.length;
+  const present = mine.filter(r=>r.status==="P").length;
+  const absent = mine.filter(r=>r.status==="A").length;
+  const od = mine.filter(r=>r.status==="OD").length;
+  const leave = mine.filter(r=>r.status==="L").length;
+  const countOD = opts?.countOD !== false;
+  const pct = total ? ((present + (countOD?od:0)) / total * 100) : 100;
+  return {total, present, absent, od, leave, pct: Math.round(pct*100)/100};
+}
+
+function statusOf(pct, settings){
+  if(pct >= settings.minAttendance) return "SAFE";
+  if(pct >= settings.warnAttendance) return "WARNING";
+  return "CRITICAL";
+}
+function statusColors(status){
+  if(status==="SAFE") return {fg:"var(--safe)", bg:"var(--safe-bg)"};
+  if(status==="WARNING") return {fg:"var(--warn)", bg:"var(--warn-bg)"};
+  return {fg:"var(--crit)", bg:"var(--crit-bg)"};
+}
+
+function consecutiveAbsences(records, studentId){
+  const mine = records.filter(r=>r.studentId===studentId).sort((a,b)=>a.date.localeCompare(b.date)||a.period-b.period);
+  // count consecutive absent DAYS (all periods absent that day) at the tail
+  const byDay = {};
+  mine.forEach(r=>{ byDay[r.date] = byDay[r.date] || []; byDay[r.date].push(r.status); });
+  const days = Object.keys(byDay).sort();
+  let streak = 0;
+  for(let i=days.length-1;i>=0;i--){
+    const statuses = byDay[days[i]];
+    const allAbsent = statuses.every(s=>s==="A");
+    if(allAbsent){ streak++; } else break;
+  }
+  return streak;
+}
+
+function classSuffix(rate){
+  if(rate>=90) return "Excellent";
+  if(rate>=75) return "Good";
+  if(rate>=65) return "Warning";
+  return "Critical";
+}
+
+/* ---------------- Small UI atoms ---------------- */
+function Badge({children, tone}){
+  const map = {
+    safe:{bg:"var(--safe-bg)",fg:"var(--safe)"},
+    warn:{bg:"var(--warn-bg)",fg:"var(--warn)"},
+    crit:{bg:"var(--crit-bg)",fg:"var(--crit)"},
+    neutral:{bg:"#EDEFEC",fg:"var(--text-dim)"},
+  };
+  const c = map[tone]||map.neutral;
+  return <span style={{background:c.bg,color:c.fg,padding:"3px 9px",borderRadius:5,fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>{children}</span>;
+}
+
+function Card({children, style}){
+  return <div style={{background:"var(--panel)",border:"1px solid var(--line)",borderRadius:8,padding:18,...style}}>{children}</div>;
+}
+
+function Toast({toast}){
+  if(!toast) return null;
+  return (
+    <div style={{position:"fixed",bottom:24,right:24,background:"var(--ink)",color:"#fff",padding:"12px 18px",borderRadius:8,fontSize:14,boxShadow:"0 8px 24px rgba(0,0,0,.25)",zIndex:999,maxWidth:340}}>
+      {toast}
+    </div>
+  );
+}
+
+/* ---------------- Chart wrapper ---------------- */
+function ChartCanvas({type, data, options, height}){
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(()=>{
+    if(chartRef.current) chartRef.current.destroy();
+    const ctx = ref.current.getContext('2d');
+    chartRef.current = new Chart(ctx, {type, data, options: options||{}});
+    return ()=>{ if(chartRef.current) chartRef.current.destroy(); };
+  }, [JSON.stringify(data)]);
+  return <div style={{height: height||220}}><canvas ref={ref}></canvas></div>;
+}
+
+/* ---------------- App ---------------- */
+function App(){
+  const [students, setStudents] = useState(seedStudents);
+  const [attendance, setAttendance] = useState(()=>seedAttendance(seedStudents()));
+  const [odRecords, setODRecords] = useState(()=>seedODRecords(seedStudents()));
+  const [notifications, setNotifications] = useState([]);
+  const [auditLog, setAuditLog] = useState([]);
+  const [settings, setSettings] = useState({minAttendance:75, warnAttendance:65, countOD:true, notificationMode:"DEMO"});
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState("dashboard");
+  const [toast, setToast] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  function showToast(msg){ setToast(msg); setTimeout(()=>setToast(null), 3200); }
+
+  function pushNotification(n){
+    setNotifications(prev=>[{id:"N"+(prev.length+1), ...n}, ...prev]);
+  }
+  function pushAudit(entry){
+    setAuditLog(prev=>[{id:"L"+(prev.length+1), time:new Date().toISOString(), ...entry}, ...prev]);
+  }
+
+  if(!user){
+    return <Login onLogin={setUser} />;
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar page={page} setPage={setPage} role={user.role} onLogout={()=>setUser(null)} />
+      <div className="main-col">
+        <TopBar user={user} settings={settings} />
+        <div className="content-pad">
+          {page==="dashboard" && <Dashboard students={students} attendance={attendance} notifications={notifications} settings={settings} setPage={setPage} setSelectedStudent={setSelectedStudent} />}
+          {page==="students" && <Students students={students} setStudents={setStudents} attendance={attendance} settings={settings} showToast={showToast} onView={(s)=>{setSelectedStudent(s); setPage("profile");}} />}
+          {page==="profile" && selectedStudent && <Profile student={selectedStudent} attendance={attendance} odRecords={odRecords} settings={settings} onBack={()=>setPage("students")} onTestAlert={(s)=>{
+            pushNotification({date:dateStr(new Date()), studentId:s.id, studentName:s.name, parent:s.parentName, type:"Test Alert", reason:"Manual test from profile", channel:"SMS", status:"SIMULATED", time:new Date().toLocaleTimeString()});
+            showToast("Test parent alert simulated for "+s.parentName);
+          }} />}
+          {page==="attendance" && <DailyAttendance students={students} attendance={attendance} setAttendance={setAttendance} settings={settings}
+            onSaved={({records, absentees, escalations})=>{
+              records.forEach(r=>pushAudit({who:user.name, action:"Marked attendance", student:r.studentId, status:r.status, subject:r.subject, date:r.date}));
+              absentees.forEach(s=>pushNotification({date:s.date, studentId:s.id, studentName:s.name, parent:s.parentName, type:"Absence Alert", reason:"Absent — "+s.subject+" P"+s.period, channel:"SMS", status:"SIMULATED", time:new Date().toLocaleTimeString()}));
+              escalations.forEach(s=>pushNotification({date:s.date, studentId:s.id, studentName:s.name, parent:s.parentName, type:"Repeated Absence Alert", reason:s.streak+" consecutive days absent", channel:"SMS + Call", status:"SIMULATED", time:new Date().toLocaleTimeString()}));
+              showToast("Attendance saved. "+(absentees.length? absentees.length+" parent alert(s) triggered.":"No absentees today."));
+            }} />}
+          {page==="monthly" && <Monthly students={students} attendance={attendance} settings={settings} />}
+          {page==="od" && <ODModule students={students} odRecords={odRecords} setODRecords={setODRecords} showToast={showToast} />}
+          {page==="shortage" && <Shortage students={students} attendance={attendance} settings={settings} onView={(s)=>{setSelectedStudent(s); setPage("profile");}} />}
+          {page==="notifications" && <Notifications notifications={notifications} students={students} />}
+          {page==="analytics" && <Analytics students={students} attendance={attendance} settings={settings} />}
+          {page==="settings" && <SettingsPage settings={settings} setSettings={setSettings} showToast={showToast} />}
+          {page==="audit" && <AuditLog auditLog={auditLog} />}
+        </div>
+      </div>
+      <Toast toast={toast} />
+    </div>
+  );
+}
+
+/* ---------------- Login ---------------- */
+function Login({onLogin}){
+  const [role, setRole] = useState("Lecturer");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function submit(e){
+    e.preventDefault();
+    if(!username || !password){ setError("Please enter username and password."); return; }
+    const names = {Admin:"Dr. Rajendran (Admin)", Lecturer:"Sahana", Student:"Arun Kumar"};
+    onLogin({role, name: names[role], username});
+  }
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--ink)"}}>
+      <div style={{width:380,maxWidth:"92vw",background:"var(--panel)",borderRadius:10,padding:"34px 30px",boxShadow:"0 20px 60px rgba(0,0,0,.35)"}}>
+        <div style={{textAlign:"center",marginBottom:22}}>
+          <div style={{fontSize:12,letterSpacing:".08em",color:"var(--brass)",fontWeight:700,marginBottom:4}}>{COLLEGE.toUpperCase()}</div>
+          <h1 className="serif" style={{margin:0,fontSize:30,color:"var(--ink)"}}>SmartAttend</h1>
+          <div style={{color:"var(--text-dim)",fontSize:13,marginTop:4}}>Polytechnic Attendance &amp; Academic Monitoring System</div>
+        </div>
+        <form onSubmit={submit}>
+          <label style={{fontSize:12,fontWeight:600,color:"var(--text-dim)"}}>Role</label>
+          <select value={role} onChange={e=>setRole(e.target.value)} style={{width:"100%",padding:"9px 10px",marginTop:4,marginBottom:14,border:"1px solid var(--line)",borderRadius:6}}>
+            <option>Admin</option>
+            <option>Lecturer</option>
+            <option>Student</option>
+          </select>
+          <label style={{fontSize:12,fontWeight:600,color:"var(--text-dim)"}}>Username / Email</label>
+          <input value={username} onChange={e=>setUsername(e.target.value)} placeholder="e.g. sahana@gmail.com" style={{width:"100%",padding:"9px 10px",marginTop:4,marginBottom:14,border:"1px solid var(--line)",borderRadius:6}} />
+          <label style={{fontSize:12,fontWeight:600,color:"var(--text-dim)"}}>Password</label>
+          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" style={{width:"100%",padding:"9px 10px",marginTop:4,marginBottom:6,border:"1px solid var(--line)",borderRadius:6}} />
+          {error && <div style={{color:"var(--crit)",fontSize:12,marginBottom:10}}>{error}</div>}
+          <button type="submit" style={{width:"100%",background:"var(--ink)",color:"#fff",border:"none",padding:"11px 0",borderRadius:6,fontWeight:600,marginTop:10}}>Login</button>
+          <div style={{textAlign:"center",marginTop:12}}>
+            <a href="#" style={{fontSize:12.5,color:"var(--text-dim)"}}>Forgot Password?</a>
+          </div>
+        </form>
+        <div style={{marginTop:18,fontSize:11.5,color:"var(--text-dim)",textAlign:"center",borderTop:"1px solid var(--line)",paddingTop:12}}>
+          Demo mode — enter any username/password to explore as the selected role.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Sidebar / Top bar ---------------- */
+const NAV = [
+  {key:"dashboard", label:"Dashboard", roles:["Admin","Lecturer","Student"]},
+  {key:"students", label:"Students", roles:["Admin","Lecturer"]},
+  {key:"attendance", label:"Daily Attendance", roles:["Admin","Lecturer"]},
+  {key:"monthly", label:"Monthly Attendance", roles:["Admin","Lecturer","Student"]},
+  {key:"od", label:"OD Management", roles:["Admin","Lecturer","Student"]},
+  {key:"shortage", label:"Shortage Alerts", roles:["Admin","Lecturer"]},
+  {key:"notifications", label:"Notifications", roles:["Admin","Lecturer"]},
+  {key:"analytics", label:"Analytics", roles:["Admin","Lecturer"]},
+  {key:"audit", label:"Audit Log", roles:["Admin"]},
+  {key:"settings", label:"Settings", roles:["Admin"]},
+];
+
+function Sidebar({page, setPage, role, onLogout}){
+  const items = NAV.filter(n=>n.roles.includes(role));
+  return (
+    <div className="sidebar">
+      <div className="sidebar-brand" style={{padding:"20px 18px 14px",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
+        <div style={{fontSize:10,letterSpacing:".08em",color:"var(--brass)",fontWeight:700}}>AGP POLYTECHNIC</div>
+        <div className="serif" style={{fontSize:20,color:"#fff",marginTop:2}}>SmartAttend</div>
+      </div>
+      <div className="sidebar-nav">
+        {items.map(it=>(
+          <div key={it.key} onClick={()=>setPage(it.key)}
+            style={{
+              padding:"10px 18px",cursor:"pointer",fontSize:13.5,
+              background: page===it.key ? "rgba(184,134,46,.18)" : "transparent",
+              borderLeft: page===it.key ? "3px solid var(--brass)" : "3px solid transparent",
+              color: page===it.key ? "#fff" : "#B7C1BE",
+              fontWeight: page===it.key ? 600 : 400,
+            }}>{it.label}</div>
+        ))}
+      </div>
+      <div className="sidebar-logout" style={{padding:14,borderTop:"1px solid rgba(255,255,255,.08)"}}>
+        <button onClick={onLogout} style={{width:"100%",background:"transparent",border:"1px solid rgba(255,255,255,.2)",color:"#DCE3E0",padding:"8px 0",borderRadius:6,fontSize:13}}>Log out</button>
+      </div>
+    </div>
+  );
+}
+
+function TopBar({user, settings}){
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 22px",background:"var(--panel)",borderBottom:"1px solid var(--line)"}}>
+      <div>
+        <div style={{fontSize:12,color:"var(--text-dim)"}}>{DEPT}</div>
+        <div style={{fontWeight:600}}>{new Date("2026-09-12").toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontWeight:600,fontSize:14}}>{user.name}</div>
+        <div style={{fontSize:12,color:"var(--text-dim)"}}>{user.role} · Notification mode: {settings.notificationMode}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Dashboard ---------------- */
+function Dashboard({students, attendance, notifications, settings, setPage, setSelectedStudent}){
+  const today = "2026-09-12";
+  const todayRecs = attendance.filter(r=>r.date===today);
+  const presentIds = new Set(todayRecs.filter(r=>r.status==="P").map(r=>r.studentId));
+  const absentIds = new Set(todayRecs.filter(r=>r.status==="A").map(r=>r.studentId));
+  const odIds = new Set(todayRecs.filter(r=>r.status==="OD").map(r=>r.studentId));
+
+  const perStudentPct = students.map(s=>({s, stats: calcStats(attendance, s.id, settings)}));
+  const classAvg = perStudentPct.reduce((a,x)=>a+x.stats.pct,0)/ (perStudentPct.length||1);
+  const shortageList = perStudentPct.filter(x=>x.stats.pct < settings.minAttendance).sort((a,b)=>a.stats.pct-b.stats.pct);
+
+  const last7dates = [...new Set(attendance.map(r=>r.date))].sort().slice(-7);
+  const trend = last7dates.map(d=>{
+    const recs = attendance.filter(r=>r.date===d);
+    const p = recs.filter(r=>r.status==="P").length;
+    const a = recs.filter(r=>r.status==="A").length;
+    return {d, p, a};
+  });
+
+  const repeated = students.filter(s=>consecutiveAbsences(attendance, s.id) >= 3);
+
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>Overview</h2>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
+        <StatCard label="Total Students" value={students.length} />
+        <StatCard label="Present Today" value={presentIds.size} tone="safe" />
+        <StatCard label="Absent Today" value={absentIds.size} tone="crit" />
+        <StatCard label="OD Today" value={odIds.size} tone="neutral" />
+        <StatCard label="Class Attendance" value={classAvg.toFixed(1)+"%"} />
+        <StatCard label="Shortage Alerts" value={shortageList.length} tone={shortageList.length? "warn":"safe"} />
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:14,marginBottom:16}}>
+        <Card>
+          <h3 style={{marginTop:0,fontSize:14}}>Daily Attendance Trend</h3>
+          <ChartCanvas type="line" data={{
+            labels: trend.map(t=>fmtDate(t.d)),
+            datasets:[
+              {label:"Present", data: trend.map(t=>t.p), borderColor:"#2F7D53", backgroundColor:"rgba(47,125,83,.15)", tension:.3},
+              {label:"Absent", data: trend.map(t=>t.a), borderColor:"#AA3E36", backgroundColor:"rgba(170,62,54,.12)", tension:.3},
+            ]
+          }} options={{plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true}}}} />
+        </Card>
+        <Card>
+          <h3 style={{marginTop:0,fontSize:14}}>Present vs Absent vs OD (overall)</h3>
+          <ChartCanvas type="doughnut" data={{
+            labels:["Present","Absent","OD"],
+            datasets:[{data:[
+              attendance.filter(r=>r.status==="P").length,
+              attendance.filter(r=>r.status==="A").length,
+              attendance.filter(r=>r.status==="OD").length,
+            ], backgroundColor:["#2F7D53","#AA3E36","#B8862E"]}]
+          }} options={{plugins:{legend:{position:'bottom'}}}} />
+        </Card>
+      </div>
+
+      <Card>
+        <h3 style={{marginTop:0,fontSize:14}}>Attendance Alerts</h3>
+        {shortageList.length===0 && repeated.length===0 && <div style={{color:"var(--text-dim)",fontSize:13.5}}>No active alerts. All students are within the required attendance range.</div>}
+        {shortageList.slice(0,5).map(({s,stats})=>(
+          <div key={s.id} onClick={()=>{setSelectedStudent(s); setPage("profile");}} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--line)",cursor:"pointer"}}>
+            <span>⚠ Attendance Shortage — <strong>{s.name}</strong> ({s.className})</span>
+            <Badge tone={stats.pct < settings.warnAttendance ? "crit":"warn"}>{stats.pct}%</Badge>
+          </div>
+        ))}
+        {repeated.map(s=>(
+          <div key={s.id} onClick={()=>{setSelectedStudent(s); setPage("profile");}} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--line)",cursor:"pointer"}}>
+            <span>⚠ Repeated Absence — <strong>{s.name}</strong></span>
+            <Badge tone="crit">{consecutiveAbsences(attendance,s.id)} consecutive days</Badge>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+function StatCard({label, value, tone}){
+  const map = {safe:"var(--safe)", crit:"var(--crit)", warn:"var(--warn)", neutral:"var(--ink)"};
+  return (
+    <Card>
+      <div style={{fontSize:11.5,color:"var(--text-dim)",fontWeight:600,textTransform:"uppercase",letterSpacing:".03em"}}>{label}</div>
+      <div className="serif" style={{fontSize:28,marginTop:4,color: tone?map[tone]:"var(--ink)"}}>{value}</div>
+    </Card>
+  );
+}
+
+/* ---------------- Students ---------------- */
+const STUDENT_FIELDS = [
+  {key:"roll", label:"Roll Number"},
+  {key:"reg", label:"Register Number"},
+  {key:"name", label:"Student Name"},
+  {key:"className", label:"Class", type:"class"},
+  {key:"gender", label:"Gender", type:"gender"},
+  {key:"phone", label:"Student Phone"},
+  {key:"parentName", label:"Parent / Guardian Name"},
+  {key:"parentPhone", label:"Parent Phone"},
+  {key:"parentEmail", label:"Parent Email"},
+  {key:"bloodGroup", label:"Blood Group"},
+  {key:"address", label:"Address"},
+];
+
+function emptyStudentForm(){
+  const f = {};
+  STUDENT_FIELDS.forEach(x=>f[x.key]="");
+  f.className = CLASSES[0];
+  f.gender = "Male";
+  f.status = "Active";
+  return f;
+}
+
+function classToYearSem(className){
+  const yr = className.split(" ")[0];
+  const year = yr === "II" ? 2 : 3;
+  const semester = year===2?3:5;
+  const section = className.slice(-1);
+  return {year, semester, section};
+}
+
+function csvEscape(v){
+  const s = (v===undefined||v===null) ? "" : String(v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+  if(lines.length===0) return [];
+  const headers = lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,"").toLowerCase());
+  return lines.slice(1).map(line=>{
+    const cells = line.split(",").map(c=>c.trim().replace(/^"|"$/g,""));
+    const row = {};
+    headers.forEach((h,i)=>{ row[h] = cells[i] || ""; });
+    return row;
+  });
+}
+
+function Students({students, setStudents, attendance, settings, showToast, onView}){
+  const [q, setQ] = useState("");
+  const [cls, setCls] = useState("All");
+  const [modal, setModal] = useState(null); // {mode:'add'|'edit', form:{...}}
+  const fileRef = useRef(null);
+
+  const filtered = students.filter(s=>
+    (cls==="All" || s.className===cls) &&
+    (s.name.toLowerCase().includes(q.toLowerCase()) || s.reg.toLowerCase().includes(q.toLowerCase()))
+  );
+
+  function openAdd(){ setModal({mode:"add", form: emptyStudentForm()}); }
+  function openEdit(s){ setModal({mode:"edit", form: {...s}}); }
+
+  function saveModal(){
+    const f = modal.form;
+    if(!f.name || !f.reg){ showToast("Name and Register Number are required."); return; }
+    if(modal.mode==="add" && students.some(s=>s.reg.toLowerCase()===f.reg.toLowerCase())){
+      showToast("A student with that Register Number already exists."); return;
+    }
+    const {year, semester, section} = classToYearSem(f.className);
+    if(modal.mode==="add"){
+      const newStudent = {
+        id: "S"+Date.now(), dept: DEPT, academicYear:"2026-2027", admissionYear: 2026-year+1,
+        status:"Active", ...f, year, semester, section,
+      };
+      setStudents(prev=>[...prev, newStudent]);
+      showToast("Student added: "+f.name);
+    } else {
+      setStudents(prev=>prev.map(s=> s.id===f.id ? {...s, ...f, year, semester, section} : s));
+      showToast("Student updated: "+f.name);
+    }
+    setModal(null);
+  }
+
+  function deleteStudent(s){
+    if(window.confirm("Remove "+s.name+" ("+s.reg+")? This cannot be undone.")){
+      setStudents(prev=>prev.filter(x=>x.id!==s.id));
+      showToast("Removed "+s.name);
+    }
+  }
+
+  function exportCSV(){
+    const headers = ["roll","reg","name","className","gender","phone","parentName","parentPhone","parentEmail","bloodGroup","address","status"];
+    const rows = [headers.join(",")];
+    filtered.forEach(s=> rows.push(headers.map(h=>csvEscape(s[h])).join(",")) );
+    const csv = "\ufeff"+rows.join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "smartattend_students.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Exported "+filtered.length+" student(s) to CSV.");
+  }
+
+  function triggerImport(){ fileRef.current && fileRef.current.click(); }
+
+  function handleImportFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      try{
+        const rows = parseCSV(ev.target.result);
+        let added = 0, skipped = 0;
+        const additions = [];
+        rows.forEach((r,i)=>{
+          const name = r.name || r["student name"] || "";
+          const reg = r.reg || r["register number"] || r["register no"] || "";
+          if(!name || !reg){ skipped++; return; }
+          if(students.some(s=>s.reg.toLowerCase()===reg.toLowerCase())){ skipped++; return; }
+          const className = r.classname || r.class || CLASSES[0];
+          const matchedClass = CLASSES.find(c=>c.toLowerCase()===String(className).toLowerCase()) || CLASSES[0];
+          const {year, semester, section} = classToYearSem(matchedClass);
+          additions.push({
+            id:"S"+Date.now()+i, roll: r.roll || r["roll number"] || String(i+1).padStart(2,"0"),
+            reg, name, className: matchedClass, year, semester, section,
+            gender: r.gender || "Male", dept: DEPT, academicYear:"2026-2027", admissionYear: 2026-year+1,
+            phone: r.phone || r["student phone"] || "", parentName: r.parentname || r["parent name"] || "",
+            parentPhone: r.parentphone || r["parent phone"] || "", parentEmail: r.parentemail || r["parent email"] || "",
+            bloodGroup: r.bloodgroup || r["blood group"] || "", address: r.address || "", status:"Active",
+          });
+          added++;
+        });
+        if(additions.length) setStudents(prev=>[...prev, ...additions]);
+        showToast("Import complete: "+added+" added, "+skipped+" skipped.");
+      }catch(err){
+        showToast("Import failed — check the CSV format.");
+      }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <h2 className="serif" style={{margin:0}}>Students</h2>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <input ref={fileRef} type="file" accept=".csv" style={{display:"none"}} onChange={handleImportFile} />
+          <button style={btnGhost} onClick={triggerImport}>Import CSV</button>
+          <button style={btnGhost} onClick={exportCSV}>Export CSV</button>
+          <button style={btnDark} onClick={openAdd}>+ Add Student</button>
+        </div>
+      </div>
+      <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:10}}>
+        Import expects a CSV with headers: roll, reg, name, className, gender, phone, parentName, parentPhone, parentEmail, bloodGroup, address. Export always downloads the currently filtered list.
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+        <input placeholder="Search by name or register no." value={q} onChange={e=>setQ(e.target.value)} style={inputStyle} />
+        <select value={cls} onChange={e=>setCls(e.target.value)} style={inputStyle}>
+          <option>All</option>
+          {CLASSES.map(c=><option key={c}>{c}</option>)}
+        </select>
+      </div>
+      <Card style={{padding:0,overflowX:"auto"}}>
+        <table>
+          <thead><tr><th>Roll</th><th>Reg No</th><th>Name</th><th>Class</th><th>Parent</th><th>Attendance</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {filtered.length===0 && <tr><td colSpan="8" style={{color:"var(--text-dim)"}}>No students match this search/filter.</td></tr>}
+            {filtered.map(s=>{
+              const st = calcStats(attendance, s.id, settings);
+              const status = statusOf(st.pct, settings);
+              return (
+                <tr key={s.id}>
+                  <td>{s.roll}</td><td>{s.reg}</td><td>{s.name}</td><td>{s.className}</td>
+                  <td>{s.parentName}<div style={{fontSize:11,color:"var(--text-dim)"}}>{s.parentPhone}</div></td>
+                  <td>{st.pct}%</td>
+                  <td><Badge tone={status==="SAFE"?"safe":status==="WARNING"?"warn":"crit"}>{status}</Badge></td>
+                  <td style={{whiteSpace:"nowrap"}}>
+                    <a onClick={()=>onView(s)} style={{color:"var(--brass)",cursor:"pointer",fontSize:13,marginRight:10}}>View</a>
+                    <a onClick={()=>openEdit(s)} style={{color:"var(--ink-soft)",cursor:"pointer",fontSize:13,marginRight:10}}>Edit</a>
+                    <a onClick={()=>deleteStudent(s)} style={{color:"var(--crit)",cursor:"pointer",fontSize:13}}>Delete</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+
+      {modal && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <Card style={{width:460,maxWidth:"94vw",maxHeight:"88vh",overflowY:"auto"}}>
+            <h3 style={{marginTop:0}}>{modal.mode==="add" ? "Add Student" : "Edit Student"}</h3>
+            {STUDENT_FIELDS.map(f=>(
+              <div key={f.key} style={{marginBottom:10}}>
+                <label style={lbl}>{f.label}</label>
+                {f.type==="class" ? (
+                  <select value={modal.form[f.key]} onChange={e=>setModal({...modal, form:{...modal.form, [f.key]:e.target.value}})} style={{...inputStyle,width:"100%"}}>
+                    {CLASSES.map(c=><option key={c}>{c}</option>)}
+                  </select>
+                ) : f.type==="gender" ? (
+                  <select value={modal.form[f.key]} onChange={e=>setModal({...modal, form:{...modal.form, [f.key]:e.target.value}})} style={{...inputStyle,width:"100%"}}>
+                    <option>Male</option><option>Female</option><option>Other</option>
+                  </select>
+                ) : (
+                  <input value={modal.form[f.key]} onChange={e=>setModal({...modal, form:{...modal.form, [f.key]:e.target.value}})} style={{...inputStyle,width:"100%"}} />
+                )}
+              </div>
+            ))}
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:6}}>
+              <button style={btnGhost} onClick={()=>setModal(null)}>Cancel</button>
+              <button style={btnDark} onClick={saveModal}>{modal.mode==="add" ? "Add Student" : "Save Changes"}</button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+const inputStyle = {padding:"8px 10px",border:"1px solid var(--line)",borderRadius:6,fontSize:13.5};
+const btnDark = {background:"var(--ink)",color:"#fff",border:"none",padding:"8px 14px",borderRadius:6,fontSize:13.5,fontWeight:600};
+const btnGhost = {background:"#fff",border:"1px solid var(--line)",padding:"8px 14px",borderRadius:6,fontSize:13.5};
+
+/* ---------------- Profile ---------------- */
+function Profile({student, attendance, odRecords, settings, onBack, onTestAlert}){
+  const st = calcStats(attendance, student.id, settings);
+  const status = statusOf(st.pct, settings);
+  const c = statusColors(status);
+  const myOD = odRecords.filter(o=>o.studentId===student.id);
+  const myRecs = attendance.filter(r=>r.studentId===student.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+
+  return (
+    <div>
+      <a onClick={onBack} style={{color:"var(--text-dim)",cursor:"pointer",fontSize:13}}>← Back to Students</a>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginTop:12}}>
+        <Card>
+          <h2 className="serif" style={{marginTop:0,marginBottom:2}}>{student.name}</h2>
+          <div style={{color:"var(--text-dim)",fontSize:13.5,marginBottom:14}}>{student.className} · Reg No {student.reg} · Roll {student.roll}</div>
+          <Row label="Department" value={student.dept} />
+          <Row label="Semester" value={student.semester} />
+          <Row label="Parent" value={student.parentName} />
+          <Row label="Parent Contact" value={student.parentPhone} />
+          <Row label="Blood Group" value={student.bloodGroup} />
+          <div style={{marginTop:14}}>
+            <button style={btnDark} onClick={()=>onTestAlert(student)}>Send Test Parent Alert</button>
+          </div>
+        </Card>
+        <Card>
+          <h3 style={{marginTop:0,fontSize:14}}>Attendance Summary</h3>
+          <div style={{display:"flex",gap:20,marginBottom:10}}>
+            <Mini label="Present" value={st.present} />
+            <Mini label="Absent" value={st.absent} />
+            <Mini label="OD" value={st.od} />
+            <Mini label="Working" value={st.total} />
+          </div>
+          <div style={{background:c.bg,color:c.fg,borderRadius:8,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:12,fontWeight:600}}>ATTENDANCE</div>
+              <div className="serif" style={{fontSize:26}}>{st.pct}%</div>
+            </div>
+            <Badge tone={status==="SAFE"?"safe":status==="WARNING"?"warn":"crit"}>{status}</Badge>
+          </div>
+        </Card>
+      </div>
+
+      <Card style={{marginTop:14}}>
+        <h3 style={{marginTop:0,fontSize:14}}>Recent Attendance</h3>
+        <table>
+          <thead><tr><th>Date</th><th>Subject</th><th>Period</th><th>Status</th></tr></thead>
+          <tbody>
+            {myRecs.map(r=>(
+              <tr key={r.id}><td>{fmtDate(r.date)}</td><td>{r.subject}</td><td>{r.period}</td>
+              <td><Badge tone={r.status==="P"?"safe":r.status==="A"?"crit":"neutral"}>{r.status}</Badge></td></tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      {myOD.length>0 && <Card style={{marginTop:14}}>
+        <h3 style={{marginTop:0,fontSize:14}}>OD History</h3>
+        <table>
+          <thead><tr><th>Date</th><th>Event</th><th>Status</th></tr></thead>
+          <tbody>{myOD.map(o=><tr key={o.id}><td>{fmtDate(o.date)}</td><td>{o.event}</td><td><Badge tone={o.status==="Approved"?"safe":o.status==="Pending"?"warn":"crit"}>{o.status}</Badge></td></tr>)}</tbody>
+        </table>
+      </Card>}
+    </div>
+  );
+}
+function Row({label,value}){ return <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid var(--line)",fontSize:13.5}}><span style={{color:"var(--text-dim)"}}>{label}</span><span style={{fontWeight:600}}>{value}</span></div>; }
+function Mini({label,value}){ return <div><div style={{fontSize:11,color:"var(--text-dim)",textTransform:"uppercase"}}>{label}</div><div className="serif" style={{fontSize:20}}>{value}</div></div>; }
+
+/* ---------------- Daily Attendance ---------------- */
+function DailyAttendance({students, attendance, setAttendance, settings, onSaved}){
+  const [date, setDate] = useState("2026-09-12");
+  const [cls, setCls] = useState(CLASSES[2]);
+  const [subject, setSubject] = useState(SUBJECTS[0]);
+  const [period, setPeriod] = useState(1);
+  const [statuses, setStatuses] = useState({});
+  const [confirming, setConfirming] = useState(false);
+
+  const roster = students.filter(s=>s.className===cls);
+  const already = attendance.some(r=>r.date===date && r.subject===subject && r.period===period && r.className===cls);
+
+  function setStatus(id, val){ setStatuses(prev=>({...prev,[id]:val})); }
+  function presentAll(){ const m={}; roster.forEach(s=>m[s.id]="P"); setStatuses(m); }
+  function reset(){ setStatuses({}); }
+
+  function save(){
+    if(already){ setConfirming(false); return; }
+    const newRecords = roster.map(s=>({
+      id:"A"+Date.now()+s.id, studentId:s.id, date, subject, period, className:cls,
+      status: statuses[s.id] || "P", remarks:""
+    }));
+    const updated = [...attendance, ...newRecords];
+
+    const absentees = [];
+    const escalations = [];
+    newRecords.filter(r=>r.status==="A").forEach(r=>{
+      const s = students.find(x=>x.id===r.studentId);
+      absentees.push({...s, date, subject, period});
+      const streak = consecutiveAbsences(updated, s.id);
+      if(streak>=3) escalations.push({...s, date, streak});
+    });
+
+    setAttendance(updated);
+    setConfirming(false);
+    onSaved({records:newRecords, absentees, escalations});
+  }
+
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>Daily Attendance</h2>
+      <Card style={{marginBottom:14}}>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <div><label style={lbl}>Date</label><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={inputStyle} /></div>
+          <div><label style={lbl}>Class</label><select value={cls} onChange={e=>{setCls(e.target.value); setStatuses({});}} style={inputStyle}>{CLASSES.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div><label style={lbl}>Subject</label><select value={subject} onChange={e=>setSubject(e.target.value)} style={inputStyle}>{SUBJECTS.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div><label style={lbl}>Period</label><select value={period} onChange={e=>setPeriod(Number(e.target.value))} style={inputStyle}>{[1,2,3,4,5,6].map(p=><option key={p} value={p}>{p}</option>)}</select></div>
+        </div>
+        {already && <div style={{marginTop:10,color:"var(--crit)",fontSize:13}}>Attendance for this class, subject, date and period is already recorded — duplicate entries are blocked.</div>}
+      </Card>
+
+      <Card style={{padding:0,overflowX:"auto",marginBottom:14}}>
+        <table>
+          <thead><tr><th>S.No</th><th>Roll</th><th>Reg No</th><th>Name</th><th style={{minWidth:220}}>Mark</th></tr></thead>
+          <tbody>
+            {roster.map((s,i)=>(
+              <tr key={s.id}>
+                <td>{i+1}</td><td>{s.roll}</td><td>{s.reg}</td><td>{s.name}</td>
+                <td>
+                  <div style={{display:"flex",gap:6}}>
+                    {["P","A","OD","L"].map(v=>(
+                      <button key={v} onClick={()=>setStatus(s.id,v)}
+                        style={{
+                          padding:"7px 12px",borderRadius:6,fontSize:13,fontWeight:600,
+                          border: (statuses[s.id]||"P")===v ? "1px solid transparent" : "1px solid var(--line)",
+                          background: (statuses[s.id]||"P")===v ? (v==="P"?"var(--safe)":v==="A"?"var(--crit)":v==="OD"?"var(--brass)":"#888") : "#fff",
+                          color: (statuses[s.id]||"P")===v ? "#fff" : "var(--ink)"
+                        }}>{v}</button>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <div style={{display:"flex",gap:10}}>
+        <button style={btnGhost} onClick={presentAll}>Present All</button>
+        <button style={btnGhost} onClick={reset}>Reset</button>
+        <button style={{...btnDark, opacity: already?0.5:1}} disabled={already} onClick={()=>setConfirming(true)}>Save Attendance</button>
+      </div>
+
+      {confirming && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200}}>
+          <Card style={{width:360,maxWidth:"90vw"}}>
+            <h3 style={{marginTop:0}}>Confirm Submission</h3>
+            <p style={{fontSize:13.5,color:"var(--text-dim)"}}>Are you sure you want to submit attendance for {cls} — {subject}, Period {period}, {fmtDate(date)}?</p>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button style={btnGhost} onClick={()=>setConfirming(false)}>Cancel</button>
+              <button style={btnDark} onClick={save}>Confirm &amp; Save</button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+const lbl = {display:"block",fontSize:11.5,color:"var(--text-dim)",fontWeight:600,marginBottom:3};
+
+/* ---------------- Monthly ---------------- */
+function Monthly({students, attendance, settings}){
+  const [cls, setCls] = useState(CLASSES[2]);
+  const roster = students.filter(s=>s.className===cls);
+  const rows = roster.map(s=>({s, st: calcStats(attendance, s.id, settings)}));
+  const avg = rows.reduce((a,r)=>a+r.st.pct,0)/(rows.length||1);
+  const highest = rows.reduce((m,r)=>r.st.pct>m.st.pct?r:m, rows[0]||{st:{pct:0}});
+  const lowest = rows.reduce((m,r)=>r.st.pct<m.st.pct?r:m, rows[0]||{st:{pct:0}});
+  const shortageCount = rows.filter(r=>r.st.pct<settings.minAttendance).length;
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <h2 className="serif" style={{marginTop:0}}>Monthly Attendance — September 2026</h2>
+        <select value={cls} onChange={e=>setCls(e.target.value)} style={inputStyle}>{CLASSES.map(c=><option key={c}>{c}</option>)}</select>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:14}}>
+        <StatCard label="Class Average" value={avg.toFixed(1)+"%"} />
+        <StatCard label="Highest" value={(highest?.s?.name||"—")+" · "+(highest?.st?.pct||0)+"%"} tone="safe" />
+        <StatCard label="Lowest" value={(lowest?.s?.name||"—")+" · "+(lowest?.st?.pct||0)+"%"} tone="crit" />
+        <StatCard label="Shortage Students" value={shortageCount} tone={shortageCount?"warn":"safe"} />
+      </div>
+      <Card style={{padding:0,overflowX:"auto"}}>
+        <table>
+          <thead><tr><th>S.No</th><th>Roll</th><th>Reg No</th><th>Student</th><th>Working Days</th><th>Present</th><th>Absent</th><th>OD</th><th>Attendance %</th></tr></thead>
+          <tbody>
+            {rows.map((r,i)=>(
+              <tr key={r.s.id}>
+                <td>{i+1}</td><td>{r.s.roll}</td><td>{r.s.reg}</td><td>{r.s.name}</td>
+                <td>{r.st.total}</td><td>{r.st.present}</td><td>{r.st.absent}</td><td>{r.st.od}</td>
+                <td><Badge tone={r.st.pct>=settings.minAttendance?"safe":r.st.pct>=settings.warnAttendance?"warn":"crit"}>{r.st.pct}%</Badge></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------- OD ---------------- */
+function ODModule({students, odRecords, setODRecords, showToast}){
+  const [form, setForm] = useState({studentId:students[0]?.id, date:"2026-09-13", event:"", reason:"", venue:"", from:"", to:""});
+  function add(){
+    if(!form.event) { showToast("Please enter an event name."); return; }
+    setODRecords(prev=>[...prev, {id:"OD"+(prev.length+1), ...form, status:"Pending", remarks:""}]);
+    setForm({...form, event:"", reason:"", venue:""});
+    showToast("OD request submitted for approval.");
+  }
+  function setStatus(id, status){ setODRecords(prev=>prev.map(o=>o.id===id?{...o,status}:o)); }
+
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>OD Management</h2>
+      <Card style={{marginBottom:14}}>
+        <h3 style={{marginTop:0,fontSize:14}}>New OD Request</h3>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <select value={form.studentId} onChange={e=>setForm({...form,studentId:e.target.value})} style={inputStyle}>{students.map(s=><option key={s.id} value={s.id}>{s.name} — {s.className}</option>)}</select>
+          <input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={inputStyle} />
+          <input placeholder="Event name" value={form.event} onChange={e=>setForm({...form,event:e.target.value})} style={inputStyle} />
+          <input placeholder="Venue" value={form.venue} onChange={e=>setForm({...form,venue:e.target.value})} style={inputStyle} />
+          <input placeholder="Reason" value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} style={inputStyle} />
+          <button style={btnDark} onClick={add}>Add OD</button>
+        </div>
+      </Card>
+      <Card style={{padding:0,overflowX:"auto"}}>
+        <table>
+          <thead><tr><th>Student</th><th>Date</th><th>Event</th><th>Venue</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {odRecords.map(o=>{
+              const s = students.find(x=>x.id===o.studentId);
+              return (
+                <tr key={o.id}>
+                  <td>{s?.name||"—"}</td><td>{fmtDate(o.date)}</td><td>{o.event}</td><td>{o.venue}</td>
+                  <td><Badge tone={o.status==="Approved"?"safe":o.status==="Pending"?"warn":"crit"}>{o.status}</Badge></td>
+                  <td>
+                    {o.status==="Pending" && <span>
+                      <a onClick={()=>setStatus(o.id,"Approved")} style={{color:"var(--safe)",cursor:"pointer",fontSize:12.5,marginRight:10}}>Approve</a>
+                      <a onClick={()=>setStatus(o.id,"Rejected")} style={{color:"var(--crit)",cursor:"pointer",fontSize:12.5}}>Reject</a>
+                    </span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------- Shortage ---------------- */
+function Shortage({students, attendance, settings, onView}){
+  const rows = students.map(s=>({s, st: calcStats(attendance, s.id, settings)})).filter(r=>r.st.pct < settings.minAttendance).sort((a,b)=>a.st.pct-b.st.pct);
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>Shortage Calculator</h2>
+      {rows.length===0 && <Card>No students are currently below the minimum attendance requirement of {settings.minAttendance}%.</Card>}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14}}>
+        {rows.map(({s,st})=>{
+          const status = statusOf(st.pct, settings);
+          const c = statusColors(status);
+          // classes needed to reach target: (present+od+x)/(total+x) = target/100
+          const target = settings.minAttendance/100;
+          const numerPresent = st.present + (settings.countOD? st.od:0);
+          let need = Math.ceil((target*st.total - numerPresent) / (1-target));
+          if(!isFinite(need) || need < 0) need = 0;
+          return (
+            <Card key={s.id}>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontWeight:600}}>{s.name}</div>
+                  <div style={{fontSize:12,color:"var(--text-dim)"}}>{s.className} · {s.reg}</div>
+                </div>
+                <Badge tone={status==="CRITICAL"?"crit":"warn"}>{status}</Badge>
+              </div>
+              <div style={{display:"flex",gap:18,margin:"12px 0"}}>
+                <Mini label="Current" value={st.pct+"%"} />
+                <Mini label="Required" value={settings.minAttendance+"%"} />
+                <Mini label="Shortfall" value={(settings.minAttendance-st.pct).toFixed(1)+"%"} />
+              </div>
+              <div style={{fontSize:13.5, color:"var(--text-dim)"}}>
+                {need>0 ? <span>Needs to attend the next <strong>{need}</strong> consecutive classes to reach {settings.minAttendance}%.</span>
+                : <span>Cannot mathematically reach {settings.minAttendance}% this term with a fixed denominator — advise the class advisor.</span>}
+              </div>
+              <button style={{...btnGhost, marginTop:10}} onClick={()=>onView(s)}>View Profile</button>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Notifications ---------------- */
+function Notifications({notifications, students}){
+  const [filterType, setFilterType] = useState("All");
+  const types = ["All", ...new Set(notifications.map(n=>n.type))];
+  const rows = notifications.filter(n=> filterType==="All" || n.type===filterType);
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>Parent Notification Log</h2>
+      <div style={{marginBottom:12}}>
+        <select value={filterType} onChange={e=>setFilterType(e.target.value)} style={inputStyle}>{types.map(t=><option key={t}>{t}</option>)}</select>
+      </div>
+      <Card style={{padding:0,overflowX:"auto"}}>
+        <table>
+          <thead><tr><th>Date</th><th>Student</th><th>Parent</th><th>Type</th><th>Reason</th><th>Channel</th><th>Status</th><th>Time</th></tr></thead>
+          <tbody>
+            {rows.length===0 && <tr><td colSpan="8" style={{color:"var(--text-dim)"}}>No notifications yet — mark a student absent in Daily Attendance to trigger one.</td></tr>}
+            {rows.map(n=>(
+              <tr key={n.id}>
+                <td>{fmtDate(n.date)}</td><td>{n.studentName}</td><td>{n.parent}</td>
+                <td>{n.type}</td><td>{n.reason}</td><td>{n.channel}</td>
+                <td><Badge tone={n.status==="SIMULATED"?"warn":n.status==="SENT"?"safe":"crit"}>{n.status}</Badge></td>
+                <td>{n.time}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------- Analytics ---------------- */
+function Analytics({students, attendance, settings}){
+  const subjPct = SUBJECTS.map(sub=>{
+    const recs = attendance.filter(r=>r.subject===sub);
+    const present = recs.filter(r=>r.status==="P"||r.status==="OD").length;
+    return {sub, pct: recs.length? Math.round(present/recs.length*1000)/10 : 0};
+  });
+  const dist = {Excellent:0, Good:0, Warning:0, Critical:0};
+  students.forEach(s=>{ const p = calcStats(attendance, s.id, settings).pct; dist[classSuffix(p)]++; });
+
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>Class Analytics</h2>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <Card>
+          <h3 style={{marginTop:0,fontSize:14}}>Subject-wise Attendance</h3>
+          <ChartCanvas type="bar" data={{labels:subjPct.map(s=>s.sub), datasets:[{label:"%", data:subjPct.map(s=>s.pct), backgroundColor:"#B8862E"}]}} options={{plugins:{legend:{display:false}}, scales:{y:{max:100}}}} />
+        </Card>
+        <Card>
+          <h3 style={{marginTop:0,fontSize:14}}>Attendance Distribution</h3>
+          <ChartCanvas type="pie" data={{labels:Object.keys(dist), datasets:[{data:Object.values(dist), backgroundColor:["#2F7D53","#7DA88A","#B8862E","#AA3E36"]}]}} options={{plugins:{legend:{position:'bottom'}}}} />
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Settings ---------------- */
+function SettingsPage({settings, setSettings, showToast}){
+  const [local, setLocal] = useState(settings);
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>College Settings</h2>
+      <Card style={{maxWidth:480}}>
+        <Field label="College Name" value={COLLEGE} disabled />
+        <Field label="Department" value={DEPT} disabled />
+        <Field label="Minimum Attendance %" value={local.minAttendance} onChange={v=>setLocal({...local,minAttendance:Number(v)})} type="number" />
+        <Field label="Warning Attendance %" value={local.warnAttendance} onChange={v=>setLocal({...local,warnAttendance:Number(v)})} type="number" />
+        <div style={{marginBottom:12}}>
+          <label style={lbl}>OD Calculation Rule</label>
+          <select value={local.countOD?"count":"exclude"} onChange={e=>setLocal({...local,countOD:e.target.value==="count"})} style={inputStyle}>
+            <option value="count">Count OD as Present</option>
+            <option value="exclude">Exclude OD from Present</option>
+          </select>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={lbl}>Notification Mode</label>
+          <select value={local.notificationMode} onChange={e=>setLocal({...local,notificationMode:e.target.value})} style={inputStyle}>
+            <option>DEMO</option><option>SMS</option><option>WHATSAPP</option><option>VOICE CALL</option>
+          </select>
+        </div>
+        <button style={btnDark} onClick={()=>{setSettings(local); showToast("Settings updated.");}}>Save Settings</button>
+      </Card>
+    </div>
+  );
+}
+function Field({label,value,onChange,type,disabled}){
+  return (
+    <div style={{marginBottom:12}}>
+      <label style={lbl}>{label}</label>
+      <input type={type||"text"} value={value} disabled={disabled} onChange={e=>onChange&&onChange(e.target.value)} style={{...inputStyle, width:"100%", background: disabled?"#F3F4F2":"#fff"}} />
+    </div>
+  );
+}
+
+/* ---------------- Audit ---------------- */
+function AuditLog({auditLog}){
+  return (
+    <div>
+      <h2 className="serif" style={{marginTop:0}}>Audit Log</h2>
+      <Card style={{padding:0,overflowX:"auto"}}>
+        <table>
+          <thead><tr><th>Time</th><th>Who</th><th>Action</th><th>Student</th><th>Subject</th><th>Status</th></tr></thead>
+          <tbody>
+            {auditLog.length===0 && <tr><td colSpan="6" style={{color:"var(--text-dim)"}}>No actions recorded yet.</td></tr>}
+            {auditLog.map(l=>(
+              <tr key={l.id}><td>{new Date(l.time).toLocaleTimeString()}</td><td>{l.who}</td><td>{l.action}</td><td>{l.student}</td><td>{l.subject}</td><td>{l.status}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+</script>
+</body>
+</html>
